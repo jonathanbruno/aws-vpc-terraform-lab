@@ -122,12 +122,61 @@ resource "aws_route_table_association" "rta_private_subnet_b" {
   route_table_id = aws_route_table.private_route_to_nat_gateway.id
 }
 
-resource "aws_security_group" "public-traffic" {
-  name        = "jb-public-traffic"
+resource "aws_security_group" "sg-public-traffic" {
+  name        = "jb-sg-public-traffic"
   description = "Allow inbound traffic and all outbound traffic"
   vpc_id      = aws_vpc.main.id
 
   tags = {
-    Name = "jb-public-traffic"
+    Name = "jb-sg-public-traffic"
   }
+}
+
+resource "aws_security_group" "sg-private-application" {
+  name        = "jb-sg-private-application"
+  description = "Allow inbound traffic from load balancer and outbound traffic to NAT Gateway"
+  vpc_id      = aws_vpc.main.id
+
+  tags = {
+    Name = "jb-sg-private-application"
+  }
+}
+
+resource "aws_security_group_rule" "sg-public-traffic-ingress-rule-a" {
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"                # Allowing all protocols, you can specify if needed
+  security_group_id = aws_security_group.sg-public-traffic.id
+  cidr_blocks = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "sg-public-traffic-egress-rule-a" {
+  type              = "egress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"                # Allowing all protocols, you can specify if needed
+  security_group_id = aws_security_group.sg-public-traffic.id
+  source_security_group_id = aws_security_group.sg-private-application.id
+  description       = "Allow outbound traffic to private security group"
+}
+
+resource "aws_security_group_rule" "sg-private-application-ingress-rule-a" {
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"                # Allowing all protocols, you can specify if needed
+  security_group_id = aws_security_group.sg-private-application.id
+  source_security_group_id = aws_security_group.sg-public-traffic.id
+  description       = "Allow inbound traffic from public security group"
+}
+
+resource "aws_security_group_rule" "sg-private-application-egress-rule-a" {
+  type              = "egress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"                # Allowing all protocols, you can specify if needed
+  security_group_id = aws_security_group.sg-private-application.id
+  cidr_blocks = ["0.0.0.0/0"]
+  description       = "Allow outbound traffic to the internet"
 }
