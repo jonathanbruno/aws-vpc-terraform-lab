@@ -35,3 +35,9 @@ resource "aws_lb_listener" "jb-listener" {
     target_group_arn = aws_lb_target_group.jb-target-group.arn
   }
 }
+
+resource "aws_lb_target_group_attachment" "test" {
+  target_group_arn = aws_lb_target_group.jb-target-group.arn
+  target_id        = aws_instance.application.id
+  port             = 80
+}
